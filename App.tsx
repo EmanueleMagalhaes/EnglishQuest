@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchDailyQuizQuestions } from './services/geminiService';
 import { auth, signInWithGoogle, logOut, saveScoreToFirestore, getMonthlyStatsFromFirestore, isFirebaseConfigured, syncLocalHistoryToFirestore } from './services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { QuizQuestion, UserAnswer, GameState, AnswerFeedback, Difficulty, QuizHistoryItem } from './types';
 import ProgressBar from './components/ProgressBar';
-import { CheckCircleIcon, XCircleIcon, SparklesIcon } from './components/icons';
+import { CheckCircleIcon, XCircleIcon, SparklesIcon, ShareIcon, WhatsAppIcon, MailIcon } from './components/icons';
 
 const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.Start);
@@ -224,15 +225,28 @@ const App: React.FC = () => {
           )}
       </div>
 
-      <div className="relative mb-8 inline-block mt-12">
-         <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-30 rounded-full animate-pulse"></div>
-         <div className="relative bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-[2.5rem] w-32 h-32 flex items-center justify-center mx-auto border border-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/20">
-            <SparklesIcon className="w-16 h-16 text-indigo-300 drop-shadow-[0_0_15px_rgba(165,180,252,0.5)]" />
+      <div className="relative mb-6 inline-block mt-12">
+         <div className="relative w-40 h-40 mx-auto flex items-center justify-center hover:scale-105 transition-transform duration-300">
+             {/* User must place 'logo.png' in public folder */}
+            <img 
+                src="/logo.png" 
+                alt="Quiz Logo" 
+                className="w-full h-full object-contain drop-shadow-[0_0_25px_rgba(165,180,252,0.3)]"
+                onError={(e) => {
+                    // Fallback if image is missing
+                    e.currentTarget.style.display = 'none';
+                    const fallback = document.getElementById('logo-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                }}
+            />
+            <div id="logo-fallback" className="hidden bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-[2.5rem] w-32 h-32 items-center justify-center border border-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/20">
+                 <SparklesIcon className="w-16 h-16 text-indigo-300" />
+            </div>
          </div>
       </div>
       
-      <h1 className="text-6xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 text-transparent bg-clip-text drop-shadow-sm tracking-tight">
-        My Target
+      <h1 className="text-5xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 text-transparent bg-clip-text drop-shadow-sm tracking-tight">
+        Quiz
       </h1>
       
       {/* Monthly Stats Card */}
@@ -423,7 +437,28 @@ const App: React.FC = () => {
     );
   };
   
-  const renderFinishedScreen = () => (
+  const renderFinishedScreen = () => {
+    // Share Logic
+    const shareText = `I just scored ${score}/${questions.length} on ${selectedDifficulty} level in My Target! 🎯\n\nCan you beat my score?`;
+    const shareUrl = window.location.href;
+
+    const handleShare = (platform: 'whatsapp' | 'email' | 'native') => {
+        if (platform === 'whatsapp') {
+            window.open(`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`, '_blank');
+        } else if (platform === 'email') {
+            window.location.href = `mailto:?subject=${encodeURIComponent("My Target Quiz Result")}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`;
+        } else if (platform === 'native') {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'My Target Quiz Result',
+                    text: shareText,
+                    url: shareUrl
+                }).catch(console.error);
+            }
+        }
+    };
+
+    return (
     <div className="w-full max-w-4xl mx-auto p-8 md:p-12 bg-gray-900/40 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/10 text-center animate-fadeIn relative overflow-hidden">
        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
       
@@ -450,6 +485,33 @@ const App: React.FC = () => {
          </div>
       </div>
       
+      {/* Share Section */}
+      <div className="mb-10 bg-white/5 p-6 rounded-3xl border border-white/10">
+          <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-4">Share your victory</p>
+          <div className="flex flex-wrap justify-center gap-4">
+             <button 
+                onClick={() => handleShare('whatsapp')}
+                className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg shadow-green-500/20"
+             >
+                 <WhatsAppIcon className="w-5 h-5" /> WhatsApp
+             </button>
+             <button 
+                onClick={() => handleShare('email')}
+                className="flex items-center gap-2 px-5 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg"
+             >
+                 <MailIcon className="w-5 h-5" /> Email
+             </button>
+             {navigator.share && (
+                <button 
+                    onClick={() => handleShare('native')}
+                    className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg"
+                >
+                    <ShareIcon className="w-5 h-5" /> More
+                </button>
+             )}
+          </div>
+      </div>
+
       <div className="text-left space-y-4 mb-12 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
         {userAnswers.map((answer, index) => (
           <div key={index} className={`p-6 rounded-2xl border transition-all duration-300 ${answer.isCorrect ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-rose-500/5 border-rose-500/10'}`}>
@@ -485,6 +547,7 @@ const App: React.FC = () => {
       </button>
     </div>
   );
+ };
 
   return (
     <main className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0A0A0A] text-white font-sans selection:bg-indigo-500/30 overflow-hidden relative">
