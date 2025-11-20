@@ -5,29 +5,27 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
   try {
     // Ensure the API key is available
     if (!process.env.API_KEY) {
-      throw new Error("API Key is missing. Please ensure process.env.API_KEY is configured in your environment.");
+        throw new Error("MISSING_API_KEY");
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     const prompt = `
-    Generate 6 unique, ${difficulty.toLowerCase()}-level English quiz questions.
-    Provide them in a valid JSON array format.
-    Each question object in the array must have three properties:
-    1. "question": A string for the question text. It can be a fill-in-the-blank (using "___"), a vocabulary definition, or a grammar challenge.
-    2. "options": An array of 4 unique strings representing possible answers.
-    3. "correctAnswer": A string containing the correct answer, which must be one of the options.
-
-    Ensure the questions cover a mix of grammar, vocabulary, and sentence structure appropriate for the ${difficulty} level.
-    Do not repeat questions or answers.
-    The output must be only the JSON array, with no other text or markdown formatting.
+    Create 6 distinct English quiz questions for a student at the ${difficulty} level.
+    
+    Requirements:
+    - Questions should verify grammar, vocabulary, or idiom knowledge.
+    - Context should be modern and relevant.
+    - Do not repeat concepts.
+    
+    Output Format: JSON Array only.
     `;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: "You are an expert English language teacher helping students improve their skills through daily practice. Create engaging, educational, and accurate questions.",
+        systemInstruction: `You are a world-class English Linguistics Professor designing a curriculum for ${difficulty} students. Your goal is to test nuance and accuracy. Ensure distractors (wrong answers) are plausible but clearly incorrect to a knowledgeable student.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -36,18 +34,18 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
             properties: {
               question: {
                 type: Type.STRING,
-                description: "The quiz question text.",
+                description: "The question text. Use '___' for blanks.",
               },
               options: {
                 type: Type.ARRAY,
                 items: {
                   type: Type.STRING,
                 },
-                description: "An array of four possible answers.",
+                description: "A list of exactly 4 possible options.",
               },
               correctAnswer: {
                 type: Type.STRING,
-                description: "The correct answer, must be one of the options.",
+                description: "The correct option from the list.",
               },
             },
             required: ["question", "options", "correctAnswer"],
@@ -56,8 +54,11 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
       },
     });
 
-    const jsonText = response.text.trim();
-    const questions = JSON.parse(jsonText) as QuizQuestion[];
+    if (!response.text) {
+        throw new Error("Empty response from AI");
+    }
+
+    const questions = JSON.parse(response.text) as QuizQuestion[];
 
     // Basic validation
     if (!Array.isArray(questions) || questions.length !== 6) {
@@ -65,9 +66,12 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
     }
     
     return questions;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching quiz questions:", error);
-    throw new Error("Failed to generate new quiz questions. Please check your connection and API key.");
+    if (error.message === "MISSING_API_KEY") {
+        throw new Error("API Key missing. Please add API_KEY to your Vercel Environment Variables.");
+    }
+    throw new Error("Failed to generate quiz. Please check your connection.");
   }
 };
 
