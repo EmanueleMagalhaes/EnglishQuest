@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   // Helper to get value from process.env (Vercel/System) OR .env file
-  // This ensures Vercel settings take precedence during build
-  const getEnv = (key: string) => process.env[key] || env[key];
+  // We fallback to '' (empty string) to avoid 'undefined' in the client bundle
+  const getEnv = (key: string) => process.env[key] || env[key] || "";
 
   return {
     plugins: [react()],

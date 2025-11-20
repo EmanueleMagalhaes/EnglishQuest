@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { QuizQuestion, Difficulty } from '../types';
 
@@ -10,12 +11,17 @@ const cleanJSON = (text: string): string => {
 
 const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQuestion[]> => {
   try {
-    // Ensure the API key is available
-    if (!process.env.API_KEY) {
+    const apiKey = process.env.API_KEY;
+
+    // Debug log to check if key is loaded (Safe log: shows only first 4 chars)
+    if (!apiKey || apiKey === "undefined" || apiKey.trim() === "") {
+        console.error("DEBUG: API Key is MISSING or EMPTY in the client.");
         throw new Error("MISSING_API_KEY");
+    } else {
+        console.log(`DEBUG: API Key loaded. Starts with: ${apiKey.substring(0, 4)}... Length: ${apiKey.length}`);
     }
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: apiKey });
 
     const prompt = `
     Create 6 distinct English quiz questions for a student at the ${difficulty} level.
@@ -97,12 +103,12 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
     let errorMessage = error.message || JSON.stringify(error);
 
     // Detect Google Security Block (Leaked Key)
-    if (errorMessage.includes("leaked") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("403")) {
-         throw new Error("Your API Key was blocked by Google Security because it was leaked publicly. Please generate a NEW key at Google AI Studio.");
+    if (errorMessage.includes("leaked") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("403") || errorMessage.includes("not valid")) {
+         throw new Error("API Key Invalid or Blocked. Please check Vercel Environment Variables and Redeploy.");
     }
 
     if (errorMessage === "MISSING_API_KEY") {
-        throw new Error("API Key missing. Please add API_KEY to your .env file.");
+        throw new Error("API Key missing. Please add API_KEY to Vercel Settings and Redeploy.");
     }
     
     // Clean up common JSON error dumps from the UI
