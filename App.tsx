@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { fetchDailyQuizQuestions } from './services/geminiService';
 import { auth, signInWithGoogle, logOut, saveScoreToFirestore, getMonthlyStatsFromFirestore, isFirebaseConfigured, syncLocalHistoryToFirestore } from './services/firebase';
@@ -208,22 +207,25 @@ const App: React.FC = () => {
     const firebaseConfigured = isFirebaseConfigured();
 
     return (
-      <div className="text-center max-w-3xl mx-auto px-6 animate-fadeIn">
+      <div className="text-center max-w-3xl mx-auto px-4 sm:px-6 animate-fadeIn pb-10 pt-10 md:pt-0">
         {/* Auth Button (Only show user info here, login button is now the main CTA) */}
-        <div className="absolute top-6 right-6">
+        <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
             {user && (
-                <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full backdrop-blur-md border border-white/10">
-                    {user.photoURL && <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-full" />}
-                    <span className="text-sm font-medium hidden sm:inline">{user.displayName}</span>
-                    <button onClick={logOut} className="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-200 px-2 py-1 rounded-md transition-colors ml-2">
+                <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-lg">
+                    {user.photoURL ? 
+                        <img src={user.photoURL} alt="User" className="w-8 h-8 rounded-full border border-white/20" /> :
+                        <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold">{user.displayName?.charAt(0) || 'U'}</div>
+                    }
+                    <span className="text-sm font-medium hidden sm:inline max-w-[100px] truncate">{user.displayName}</span>
+                    <button onClick={logOut} className="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-200 px-2 py-1 rounded-md transition-colors ml-1">
                         Logout
                     </button>
                 </div>
             )}
         </div>
 
-        <div className="relative mb-6 inline-block mt-12">
-           <div className="relative w-40 h-40 mx-auto flex items-center justify-center hover:scale-105 transition-transform duration-300">
+        <div className="relative mb-6 inline-block mt-6 md:mt-12">
+           <div className="relative w-32 h-32 md:w-40 md:h-40 mx-auto flex items-center justify-center hover:scale-105 transition-transform duration-300">
                {/* User must place 'logo.png' in public folder */}
               <img 
                   src="/logo.png" 
@@ -236,40 +238,40 @@ const App: React.FC = () => {
                       if (fallback) fallback.style.display = 'flex';
                   }}
               />
-              <div id="logo-fallback" className="hidden bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-[2.5rem] w-32 h-32 items-center justify-center border border-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/20">
-                   <SparklesIcon className="w-16 h-16 text-indigo-300" />
+              <div id="logo-fallback" className="hidden bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-[2.5rem] w-28 h-28 md:w-32 md:h-32 items-center justify-center border border-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/20">
+                   <SparklesIcon className="w-12 h-12 md:w-16 md:h-16 text-indigo-300" />
               </div>
            </div>
         </div>
         
-        <h1 className="text-5xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 text-transparent bg-clip-text drop-shadow-sm tracking-tight">
+        <h1 className="text-4xl md:text-7xl font-black mb-4 md:mb-6 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 text-transparent bg-clip-text drop-shadow-sm tracking-tight">
           Quiz
         </h1>
         
         {/* Monthly Stats Card */}
-        <div className="max-w-md mx-auto mb-10 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm flex items-center justify-between shadow-lg transition-colors hover:bg-white/10">
+        <div className="max-w-md mx-auto mb-8 md:mb-10 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm flex items-center justify-between shadow-lg transition-colors hover:bg-white/10">
            <div className="text-left pl-2">
-               <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Last 30 Days XP</p>
-               <p className="text-3xl font-black text-white">{monthlyScore} <span className="text-base font-normal text-gray-400">pts</span></p>
+               <p className="text-indigo-200 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Last 30 Days XP</p>
+               <p className="text-2xl md:text-3xl font-black text-white">{monthlyScore} <span className="text-sm md:text-base font-normal text-gray-400">pts</span></p>
            </div>
            <div className="h-10 w-px bg-white/10 mx-4"></div>
            <div className="text-right pr-2">
-               <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Quizzes</p>
-               <p className="text-3xl font-black text-white">{quizzesTaken}</p>
+               <p className="text-indigo-200 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-1">Quizzes</p>
+               <p className="text-2xl md:text-3xl font-black text-white">{quizzesTaken}</p>
            </div>
         </div>
 
-        <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light tracking-wide">
+        <p className="text-lg md:text-xl text-gray-400 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed font-light tracking-wide">
           Elevate your vocabulary and grammar with AI-curated challenges tailored to your level.
         </p>
 
-        <div className="mb-12 p-1 bg-gray-800/40 rounded-3xl border border-gray-700/50 inline-flex backdrop-blur-xl shadow-xl relative z-10">
-          <div className="flex space-x-1">
+        <div className="mb-8 md:mb-12 p-1 bg-gray-800/40 rounded-3xl border border-gray-700/50 inline-flex flex-col sm:flex-row backdrop-blur-xl shadow-xl relative z-10 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-1">
             {Object.values(Difficulty).map((level) => (
               <button
                 key={level}
                 onClick={() => setSelectedDifficulty(level)}
-                className={`px-8 py-3 rounded-[1.3rem] font-bold text-sm transition-all duration-300 ${
+                className={`px-6 md:px-8 py-3 rounded-[1.3rem] font-bold text-sm transition-all duration-300 w-full sm:w-auto ${
                   selectedDifficulty === level
                     ? 'bg-gray-700 text-white shadow-lg ring-1 ring-white/10'
                     : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
@@ -290,14 +292,14 @@ const App: React.FC = () => {
               <p className="text-indigo-200 animate-pulse font-medium text-lg tracking-wide">Designing your curriculum...</p>
            </div>
         ) : error ? (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-8 py-8 rounded-3xl max-w-lg mx-auto shadow-2xl backdrop-blur-md">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-200 px-6 py-6 md:px-8 md:py-8 rounded-3xl max-w-lg mx-auto shadow-2xl backdrop-blur-md">
             <div className="flex items-center justify-center mb-4">
                <div className="bg-red-500/20 p-3 rounded-full">
                   <XCircleIcon className="w-8 h-8 text-red-400" />
                </div>
             </div>
             <p className="font-bold text-xl mb-2">Configuration Error</p>
-            <p className="text-sm opacity-80 mb-6 leading-relaxed">{error}</p>
+            <p className="text-sm opacity-80 mb-6 leading-relaxed break-words">{error}</p>
             <div className="flex flex-col gap-3">
               <button 
                   onClick={handleStartQuiz} 
@@ -319,7 +321,7 @@ const App: React.FC = () => {
             </div>
           </div>
         ) : !firebaseConfigured ? (
-            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 p-8 rounded-3xl max-w-2xl mx-auto backdrop-blur-md text-left">
+            <div className="bg-amber-500/10 border border-amber-500/20 text-amber-200 p-6 md:p-8 rounded-3xl max-w-2xl mx-auto backdrop-blur-md text-left">
                 <h3 className="text-xl font-bold text-amber-400 mb-3 flex items-center gap-2">
                     <span className="text-2xl">⚠️</span> Setup Required
                 </h3>
@@ -348,7 +350,7 @@ const App: React.FC = () => {
         ) : !user ? (
             <button
               onClick={handleLogin}
-              className="group relative inline-flex items-center justify-center px-12 py-5 font-bold text-gray-900 transition-all duration-300 bg-white rounded-2xl hover:bg-gray-100 hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] focus:outline-none focus:ring-4 focus:ring-white/30 overflow-hidden"
+              className="group relative inline-flex items-center justify-center px-8 md:px-12 py-4 md:py-5 font-bold text-gray-900 transition-all duration-300 bg-white rounded-2xl hover:bg-gray-100 hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] focus:outline-none focus:ring-4 focus:ring-white/30 overflow-hidden w-full sm:w-auto"
             >
               <svg className="w-6 h-6 mr-3" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -356,16 +358,16 @@ const App: React.FC = () => {
                   <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" />
                   <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              <span className="relative z-10 flex items-center text-lg tracking-wide">
+              <span className="relative z-10 flex items-center text-base md:text-lg tracking-wide">
                   Sign in with Google
               </span>
             </button>
         ) : (
           <button
             onClick={handleStartQuiz}
-            className="group relative inline-flex items-center justify-center px-12 py-5 font-bold text-white transition-all duration-300 bg-indigo-600 rounded-2xl hover:bg-indigo-500 hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] focus:outline-none focus:ring-4 focus:ring-indigo-500/30 overflow-hidden ring-1 ring-white/20"
+            className="group relative inline-flex items-center justify-center px-8 md:px-12 py-4 md:py-5 font-bold text-white transition-all duration-300 bg-indigo-600 rounded-2xl hover:bg-indigo-500 hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] focus:outline-none focus:ring-4 focus:ring-indigo-500/30 overflow-hidden ring-1 ring-white/20 w-full sm:w-auto"
           >
-            <span className="relative z-10 flex items-center text-lg tracking-wide">
+            <span className="relative z-10 flex items-center text-base md:text-lg tracking-wide">
               Start Session
             </span>
           </button>
@@ -379,24 +381,24 @@ const App: React.FC = () => {
     if (!currentQuestion) return null;
 
     return (
-      <div className="w-full max-w-4xl mx-auto px-4">
-        <div className="mb-10">
+      <div className="w-full max-w-4xl mx-auto px-2 md:px-4 pt-6 pb-12">
+        <div className="mb-6 md:mb-10">
              <ProgressBar current={currentQuestionIndex + 1} total={questions.length} />
         </div>
         
-        <div className="bg-gray-900/40 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden relative">
+        <div className="bg-gray-900/40 backdrop-blur-2xl rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden relative">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
             
-            <div className="p-8 md:p-12">
-                <div className="min-h-[120px] flex items-center justify-center mb-10">
-                    <h2 className="text-2xl md:text-3xl font-medium text-gray-100 text-center leading-relaxed tracking-wide" 
+            <div className="p-5 md:p-12">
+                <div className="min-h-[100px] md:min-h-[120px] flex items-center justify-center mb-6 md:mb-10">
+                    <h2 className="text-xl md:text-3xl font-medium text-gray-100 text-center leading-relaxed tracking-wide" 
                         dangerouslySetInnerHTML={{ 
-                            __html: currentQuestion.question.replace(/___/g, '<span class="inline-block border-b-2 border-indigo-400 text-indigo-300 px-4 mx-2 font-mono bg-indigo-500/10 rounded-t transition-colors">_____</span>') 
+                            __html: currentQuestion.question.replace(/___/g, '<span class="inline-block border-b-2 border-indigo-400 text-indigo-300 px-2 md:px-4 mx-1 md:mx-2 font-mono bg-indigo-500/10 rounded-t transition-colors text-base md:text-inherit">_____</span>') 
                         }} 
                     />
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-3 md:gap-4">
                     {currentQuestion.options.map((option, index) => {
                     const isSelected = selectedAnswer === option;
                     let buttonClass = "bg-white/5 hover:bg-white/10 border-white/5 text-gray-300";
@@ -422,9 +424,9 @@ const App: React.FC = () => {
                         key={index}
                         onClick={() => handleAnswerSelect(option)}
                         disabled={feedback !== AnswerFeedback.None}
-                        className={`w-full p-5 rounded-2xl text-left text-lg font-medium border transition-all duration-200 transform active:scale-[0.99] flex items-center group ${buttonClass} ${ringClass}`}
+                        className={`w-full p-4 md:p-5 rounded-xl md:rounded-2xl text-left text-base md:text-lg font-medium border transition-all duration-200 transform active:scale-[0.99] flex items-center group ${buttonClass} ${ringClass}`}
                         >
-                        <span className={`flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl text-sm font-bold mr-5 transition-colors ${isSelected || (feedback !== AnswerFeedback.None && option === currentQuestion.correctAnswer) ? 'bg-white/20 text-white' : 'bg-black/20 text-gray-500 group-hover:bg-black/30'}`}>
+                        <span className={`flex-shrink-0 inline-flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl text-xs md:text-sm font-bold mr-3 md:mr-5 transition-colors ${isSelected || (feedback !== AnswerFeedback.None && option === currentQuestion.correctAnswer) ? 'bg-white/20 text-white' : 'bg-black/20 text-gray-500 group-hover:bg-black/30'}`}>
                             {String.fromCharCode(65 + index)}
                         </span>
                         {option}
@@ -434,30 +436,30 @@ const App: React.FC = () => {
                 </div>
             </div>
             
-            <div className="bg-black/20 p-6 md:p-8 border-t border-white/5 backdrop-blur-sm">
+            <div className="bg-black/20 p-4 md:p-8 border-t border-white/5 backdrop-blur-sm">
                 {feedback === AnswerFeedback.None ? (
                 <button
                     onClick={handleSubmitAnswer}
                     disabled={!selectedAnswer}
-                    className="w-full bg-white text-indigo-950 hover:bg-gray-100 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed font-bold py-4 px-6 rounded-xl text-lg transition-all duration-300 shadow-lg shadow-indigo-900/20 disabled:shadow-none transform active:scale-[0.99]"
+                    className="w-full bg-white text-indigo-950 hover:bg-gray-100 disabled:bg-gray-800 disabled:text-gray-600 disabled:cursor-not-allowed font-bold py-3 md:py-4 px-6 rounded-xl text-base md:text-lg transition-all duration-300 shadow-lg shadow-indigo-900/20 disabled:shadow-none transform active:scale-[0.99]"
                 >
                     Check Answer
                 </button>
                 ) : (
                 <div className="animate-fadeIn flex flex-col md:flex-row gap-4 items-center">
-                    <div className={`flex-grow flex items-center w-full p-4 rounded-xl border ${feedback === AnswerFeedback.Correct ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
+                    <div className={`flex-grow flex items-center w-full p-3 md:p-4 rounded-xl border ${feedback === AnswerFeedback.Correct ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
                         {feedback === AnswerFeedback.Correct ? (
-                            <div className="flex items-center text-emerald-400 font-bold">
-                                <CheckCircleIcon className="w-6 h-6 mr-3" />
+                            <div className="flex items-center text-emerald-400 font-bold text-sm md:text-base">
+                                <CheckCircleIcon className="w-5 h-5 md:w-6 md:h-6 mr-2 md:mr-3" />
                                 Correct!
                             </div>
                         ) : (
                             <div className="flex flex-col w-full">
-                                <div className="flex items-center text-rose-400 font-bold mb-1">
-                                    <XCircleIcon className="w-5 h-5 mr-2" />
+                                <div className="flex items-center text-rose-400 font-bold mb-1 text-sm md:text-base">
+                                    <XCircleIcon className="w-5 h-5 md:w-5 md:h-5 mr-2" />
                                     Incorrect
                                 </div>
-                                <div className="text-sm text-rose-200/80">
+                                <div className="text-xs md:text-sm text-rose-200/80">
                                     Answer: {currentQuestion.correctAnswer}
                                 </div>
                             </div>
@@ -465,7 +467,7 @@ const App: React.FC = () => {
                     </div>
                     <button
                     onClick={handleNextQuestion}
-                    className="w-full md:w-auto min-w-[200px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all duration-300 shadow-lg shadow-indigo-900/30 transform hover:-translate-y-0.5"
+                    className="w-full md:w-auto min-w-[160px] md:min-w-[200px] bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl text-base md:text-lg transition-all duration-300 shadow-lg shadow-indigo-900/30 transform hover:-translate-y-0.5"
                     >
                     {currentQuestionIndex < questions.length - 1 ? 'Next' : 'Results'}
                     </button>
@@ -499,52 +501,52 @@ const App: React.FC = () => {
     };
 
     return (
-    <div className="w-full max-w-4xl mx-auto p-8 md:p-12 bg-gray-900/40 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/10 text-center animate-fadeIn relative overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto p-6 md:p-12 bg-gray-900/40 backdrop-blur-xl rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border border-white/10 text-center animate-fadeIn relative overflow-hidden mt-4 mb-8">
        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
       
-      <div className="inline-flex p-5 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mb-8 ring-1 ring-white/10 shadow-2xl">
-          <SparklesIcon className="w-12 h-12 text-indigo-300" />
+      <div className="inline-flex p-4 md:p-5 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 mb-6 md:mb-8 ring-1 ring-white/10 shadow-2xl">
+          <SparklesIcon className="w-10 h-10 md:w-12 md:h-12 text-indigo-300" />
       </div>
       
-      <h2 className="text-4xl md:text-5xl font-bold mb-2 text-white tracking-tight">Session Complete</h2>
-      <p className="text-gray-400 mb-10 text-lg">Here is how you performed today.</p>
+      <h2 className="text-3xl md:text-5xl font-bold mb-2 text-white tracking-tight">Session Complete</h2>
+      <p className="text-gray-400 mb-8 md:mb-10 text-base md:text-lg">Here is how you performed today.</p>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-         <div className="bg-gray-800/50 p-6 rounded-3xl border border-white/5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
+         <div className="bg-gray-800/50 p-5 md:p-6 rounded-2xl md:rounded-3xl border border-white/5">
              <div className="text-gray-400 text-xs uppercase tracking-widest font-bold mb-2">Today's Score</div>
-             <div className="text-5xl font-black text-white tracking-tighter">{score}<span className="text-2xl text-gray-500">/{questions.length}</span></div>
+             <div className="text-4xl md:text-5xl font-black text-white tracking-tighter">{score}<span className="text-xl md:text-2xl text-gray-500">/{questions.length}</span></div>
          </div>
-         <div className="bg-indigo-900/20 p-6 rounded-3xl border border-indigo-500/20 md:col-span-2 flex items-center justify-between px-10">
-             <div className="text-left">
+         <div className="bg-indigo-900/20 p-5 md:p-6 rounded-2xl md:rounded-3xl border border-indigo-500/20 md:col-span-2 flex flex-col sm:flex-row items-center justify-between px-6 md:px-10 gap-2">
+             <div className="text-center sm:text-left">
                  <div className="text-indigo-300 text-xs uppercase tracking-widest font-bold mb-2">30-Day Total {user && isFirebaseConfigured() ? '(Cloud)' : '(Local)'}</div>
-                 <div className="text-5xl font-black text-white tracking-tighter">{monthlyScore} <span className="text-lg text-indigo-400 font-medium">pts</span></div>
+                 <div className="text-4xl md:text-5xl font-black text-white tracking-tighter">{monthlyScore} <span className="text-base md:text-lg text-indigo-400 font-medium">pts</span></div>
              </div>
-             <div className="text-right hidden sm:block">
+             <div className="text-center sm:text-right mt-2 sm:mt-0">
                  <div className="text-indigo-200 text-sm font-medium">Keep the streak alive! 🔥</div>
              </div>
          </div>
       </div>
       
       {/* Share Section */}
-      <div className="mb-10 bg-white/5 p-6 rounded-3xl border border-white/10">
+      <div className="mb-8 md:mb-10 bg-white/5 p-5 md:p-6 rounded-2xl md:rounded-3xl border border-white/10">
           <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest mb-4">Share your victory</p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3 md:gap-4">
              <button 
                 onClick={() => handleShare('whatsapp')}
-                className="flex items-center gap-2 px-5 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg shadow-green-500/20"
+                className="flex items-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg shadow-green-500/20 text-sm md:text-base"
              >
                  <WhatsAppIcon className="w-5 h-5" /> WhatsApp
              </button>
              <button 
                 onClick={() => handleShare('email')}
-                className="flex items-center gap-2 px-5 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg"
+                className="flex items-center gap-2 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg text-sm md:text-base"
              >
                  <MailIcon className="w-5 h-5" /> Email
              </button>
              {navigator.share && (
                 <button 
                     onClick={() => handleShare('native')}
-                    className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg"
+                    className="flex items-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-transform hover:scale-105 shadow-lg text-sm md:text-base"
                 >
                     <ShareIcon className="w-5 h-5" /> More
                 </button>
@@ -552,26 +554,26 @@ const App: React.FC = () => {
           </div>
       </div>
 
-      <div className="text-left space-y-4 mb-12 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+      <div className="text-left space-y-3 md:space-y-4 mb-8 md:mb-12 max-h-[300px] md:max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
         {userAnswers.map((answer, index) => (
-          <div key={index} className={`p-6 rounded-2xl border transition-all duration-300 ${answer.isCorrect ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-rose-500/5 border-rose-500/10'}`}>
-            <div className="flex items-baseline justify-between mb-3">
-                <span className="text-xs font-bold opacity-50 uppercase tracking-wider">Question {index + 1}</span>
+          <div key={index} className={`p-4 md:p-6 rounded-2xl border transition-all duration-300 ${answer.isCorrect ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-rose-500/5 border-rose-500/10'}`}>
+            <div className="flex items-baseline justify-between mb-2 md:mb-3">
+                <span className="text-[10px] md:text-xs font-bold opacity-50 uppercase tracking-wider">Question {index + 1}</span>
                 {answer.isCorrect ? 
-                    <span className="text-emerald-400 text-sm font-bold flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1"/> Correct</span> : 
-                    <span className="text-rose-400 text-sm font-bold flex items-center"><XCircleIcon className="w-4 h-4 mr-1"/> Incorrect</span>
+                    <span className="text-emerald-400 text-xs md:text-sm font-bold flex items-center"><CheckCircleIcon className="w-3 h-3 md:w-4 md:h-4 mr-1"/> Correct</span> : 
+                    <span className="text-rose-400 text-xs md:text-sm font-bold flex items-center"><XCircleIcon className="w-3 h-3 md:w-4 md:h-4 mr-1"/> Incorrect</span>
                 }
             </div>
-            <p className="font-medium text-gray-200 mb-4 text-lg leading-relaxed">{answer.question}</p>
-            <div className="flex flex-col sm:flex-row gap-4 text-sm">
+            <p className="font-medium text-gray-200 mb-3 md:mb-4 text-base md:text-lg leading-relaxed">{answer.question}</p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
                 <div className={`flex-1 p-3 rounded-xl border ${answer.isCorrect ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-200' : 'border-rose-500/20 bg-rose-500/10 text-rose-200'}`}>
                     <span className="block text-[10px] opacity-70 uppercase font-bold mb-1">You Selected</span>
-                    <strong className="text-base block truncate">{answer.selectedAnswer}</strong>
+                    <strong className="text-sm md:text-base block truncate">{answer.selectedAnswer}</strong>
                 </div>
                 {!answer.isCorrect && (
                     <div className="flex-1 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-200">
                         <span className="block text-[10px] opacity-70 uppercase font-bold mb-1">Correct Answer</span>
-                        <strong className="text-base block truncate">{answer.correctAnswer}</strong>
+                        <strong className="text-sm md:text-base block truncate">{answer.correctAnswer}</strong>
                     </div>
                 )}
             </div>
@@ -581,7 +583,7 @@ const App: React.FC = () => {
       
       <button
         onClick={() => setGameState(GameState.Start)}
-        className="bg-white text-gray-900 hover:bg-gray-100 font-bold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-xl shadow-white/10 transform hover:-translate-y-1 ring-4 ring-gray-900"
+        className="w-full sm:w-auto bg-white text-gray-900 hover:bg-gray-100 font-bold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-xl shadow-white/10 transform hover:-translate-y-1 ring-4 ring-gray-900"
       >
         Back to Dashboard
       </button>
@@ -590,7 +592,7 @@ const App: React.FC = () => {
  };
 
   return (
-    <main className="min-h-screen w-full flex items-center justify-center p-4 bg-[#0A0A0A] text-white font-sans selection:bg-indigo-500/30 overflow-hidden relative">
+    <main className="min-h-screen w-full flex items-start md:items-center justify-center bg-[#0A0A0A] text-white font-sans selection:bg-indigo-500/30 overflow-y-auto overflow-x-hidden relative">
       {/* Background Elements */}
       <div className="fixed top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>

@@ -8,6 +8,16 @@ const cleanJSON = (text: string): string => {
   return clean.trim();
 };
 
+// Helper function to shuffle an array (Fisher-Yates algorithm)
+const shuffleArray = <T>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+};
+
 const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQuestion[]> => {
   try {
     // Access the key directly. The vite config handles the trimming.
@@ -98,8 +108,15 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
         throw new Error("Invalid data structure received from API.");
     }
     
-    // Ensure exactly 6 questions (sometimes AI generates 5 or 7)
-    return questions.slice(0, 6);
+    // Process questions: Ensure exactly 6 and SHUFFLE options for randomness
+    const processedQuestions = questions.slice(0, 6).map(q => ({
+        ...q,
+        // Shuffle options so the answer isn't always A or B.
+        // Since correctAnswer is a string matching one of the options, logic holds.
+        options: shuffleArray(q.options) 
+    }));
+
+    return processedQuestions;
 
   } catch (error: any) {
     console.error("Detailed API Error:", error);
