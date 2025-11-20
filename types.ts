@@ -29,3 +29,10 @@ export enum Difficulty {
     Intermediate = "Intermediate",
     Advanced = "Advanced",
 }
+
+export interface QuizHistoryItem {
+    date: string; // ISO String
+    score: number;
+    totalQuestions: number;
+    difficulty: Difficulty;
+}

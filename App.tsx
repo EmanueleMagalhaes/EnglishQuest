@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchDailyQuizQuestions } from './services/geminiService';
-import { QuizQuestion, UserAnswer, GameState, AnswerFeedback, Difficulty } from './types';
+import { auth, signInWithGoogle, logOut, saveScoreToFirestore, getMonthlyStatsFromFirestore, isFirebaseConfigured, syncLocalHistoryToFirestore } from './services/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { QuizQuestion, UserAnswer, GameState, AnswerFeedback, Difficulty, QuizHistoryItem } from './types';
 import ProgressBar from './components/ProgressBar';
 import { CheckCircleIcon, XCircleIcon, SparklesIcon } from './components/icons';
 
@@ -14,6 +16,94 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.Intermediate);
+  const [user, setUser] = useState<User | null>(null);
+  
+  // Stats State
+  const [monthlyScore, setMonthlyScore] = useState(0);
+  const [quizzesTaken, setQuizzesTaken] = useState(0);
+
+  // Auth Listener
+  useEffect(() => {
+    if (isFirebaseConfigured() && auth) {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            setUser(currentUser);
+            if (currentUser) {
+                // Sync logic: If user logs in, move local storage history to cloud
+                await syncLocalHistoryToFirestore(currentUser);
+                loadStats(currentUser);
+            }
+        });
+        return () => unsubscribe();
+    }
+  }, []);
+
+  // Calculate stats on mount, when returning to start, or when user changes
+  useEffect(() => {
+    if (gameState === GameState.Start) {
+        loadStats(user);
+    }
+  }, [gameState, user]);
+
+  const loadStats = async (currentUser: User | null) => {
+      if (currentUser) {
+          // Load from Firebase
+          const stats = await getMonthlyStatsFromFirestore(currentUser);
+          setMonthlyScore(stats.score);
+          setQuizzesTaken(stats.quizzes);
+      } else {
+          // Load from LocalStorage
+          calculateLocalMonthlyStats();
+      }
+  };
+
+  const calculateLocalMonthlyStats = () => {
+    try {
+        const historyJSON = localStorage.getItem('quizHistory');
+        const history: QuizHistoryItem[] = historyJSON ? JSON.parse(historyJSON) : [];
+        
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const recentHistory = history.filter(item => new Date(item.date) >= thirtyDaysAgo);
+        
+        const totalScore = recentHistory.reduce((acc, item) => acc + item.score, 0);
+        setMonthlyScore(totalScore);
+        setQuizzesTaken(recentHistory.length);
+    } catch (e) {
+        console.error("Failed to load stats", e);
+    }
+  };
+
+  const saveQuizHistory = async (currentScore: number, total: number) => {
+      const newItem: QuizHistoryItem = {
+          date: new Date().toISOString(),
+          score: currentScore,
+          totalQuestions: total,
+          difficulty: selectedDifficulty
+      };
+
+      if (user) {
+          // Save to Cloud
+          await saveScoreToFirestore(user, newItem);
+      } else {
+          // Save to LocalStorage
+          const historyJSON = localStorage.getItem('quizHistory');
+          const history: QuizHistoryItem[] = historyJSON ? JSON.parse(historyJSON) : [];
+          const updatedHistory = [...history, newItem];
+          localStorage.setItem('quizHistory', JSON.stringify(updatedHistory));
+      }
+      
+      // Update local state immediately for the finished screen
+      loadStats(user);
+  };
+
+  const handleLogin = async () => {
+      try {
+          await signInWithGoogle();
+      } catch (e) {
+          alert("Login failed. Please check pop-up blocker or settings.");
+      }
+  };
 
   const handleStartQuiz = async () => {
     setIsLoading(true);
@@ -25,18 +115,19 @@ const App: React.FC = () => {
 
     try {
       const today = new Date().toISOString().split('T')[0];
-      const storageKey = `dailyEnglishQuiz-${selectedDifficulty}`;
+      // Updated storage key to match new app name
+      const storageKey = `myTargetQuiz-${selectedDifficulty}`;
       const storedData = localStorage.getItem(storageKey);
       
-      // Simple check to see if we have valid cached data for today
+      // Check cache (We keep cache in local storage even for logged in users to save API calls)
       if (storedData) {
         try {
             const { date, questions: storedQuestions } = JSON.parse(storedData);
             if (date === today && Array.isArray(storedQuestions) && storedQuestions.length > 0) {
-            setQuestions(storedQuestions);
-            setGameState(GameState.Playing);
-            setIsLoading(false);
-            return;
+                setQuestions(storedQuestions);
+                setGameState(GameState.Playing);
+                setIsLoading(false);
+                return;
             }
         } catch (e) {
             localStorage.removeItem(storageKey);
@@ -91,15 +182,49 @@ const App: React.FC = () => {
       setSelectedAnswer(null);
       setFeedback(AnswerFeedback.None);
     } else {
-      setGameState(GameState.Finished);
+      finishQuiz();
     }
+  };
+
+  const finishQuiz = () => {
+      const finalScore = userAnswers.filter(a => a.isCorrect).length;
+      saveQuizHistory(finalScore, questions.length);
+      setGameState(GameState.Finished);
   };
 
   const score = userAnswers.filter(answer => answer.isCorrect).length;
 
   const renderStartScreen = () => (
     <div className="text-center max-w-3xl mx-auto px-6 animate-fadeIn">
-      <div className="relative mb-8 inline-block">
+      {/* Auth Button */}
+      <div className="absolute top-6 right-6">
+          {user ? (
+              <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full backdrop-blur-md border border-white/10">
+                  {user.photoURL && <img src={user.photoURL} alt="User" className="w-6 h-6 rounded-full" />}
+                  <span className="text-sm font-medium hidden sm:inline">{user.displayName}</span>
+                  <button onClick={logOut} className="text-xs bg-red-500/20 hover:bg-red-500/40 text-red-200 px-2 py-1 rounded-md transition-colors ml-2">
+                      Logout
+                  </button>
+              </div>
+          ) : (
+             isFirebaseConfigured() && (
+              <button 
+                onClick={handleLogin}
+                className="flex items-center gap-2 bg-white text-gray-900 px-4 py-2 rounded-full font-bold text-sm hover:bg-gray-100 transition-transform hover:scale-105 shadow-lg"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" />
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Sign in with Google
+              </button>
+             )
+          )}
+      </div>
+
+      <div className="relative mb-8 inline-block mt-12">
          <div className="absolute inset-0 bg-indigo-500 blur-3xl opacity-30 rounded-full animate-pulse"></div>
          <div className="relative bg-gradient-to-br from-indigo-600/20 to-purple-600/20 rounded-[2.5rem] w-32 h-32 flex items-center justify-center mx-auto border border-white/10 backdrop-blur-md shadow-2xl ring-1 ring-white/20">
             <SparklesIcon className="w-16 h-16 text-indigo-300 drop-shadow-[0_0_15px_rgba(165,180,252,0.5)]" />
@@ -107,8 +232,22 @@ const App: React.FC = () => {
       </div>
       
       <h1 className="text-6xl md:text-7xl font-black mb-6 bg-gradient-to-r from-white via-indigo-200 to-indigo-400 text-transparent bg-clip-text drop-shadow-sm tracking-tight">
-        Daily English
+        My Target
       </h1>
+      
+      {/* Monthly Stats Card */}
+      <div className="max-w-md mx-auto mb-10 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm flex items-center justify-between shadow-lg transition-colors hover:bg-white/10">
+         <div className="text-left pl-2">
+             <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Last 30 Days XP</p>
+             <p className="text-3xl font-black text-white">{monthlyScore} <span className="text-base font-normal text-gray-400">pts</span></p>
+         </div>
+         <div className="h-10 w-px bg-white/10 mx-4"></div>
+         <div className="text-right pr-2">
+             <p className="text-indigo-200 text-xs font-bold uppercase tracking-wider mb-1">Quizzes</p>
+             <p className="text-3xl font-black text-white">{quizzesTaken}</p>
+         </div>
+      </div>
+
       <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed font-light tracking-wide">
         Elevate your vocabulary and grammar with AI-curated challenges tailored to your level.
       </p>
@@ -297,14 +436,16 @@ const App: React.FC = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
          <div className="bg-gray-800/50 p-6 rounded-3xl border border-white/5">
-             <div className="text-gray-400 text-xs uppercase tracking-widest font-bold mb-2">Score</div>
+             <div className="text-gray-400 text-xs uppercase tracking-widest font-bold mb-2">Today's Score</div>
              <div className="text-5xl font-black text-white tracking-tighter">{score}<span className="text-2xl text-gray-500">/{questions.length}</span></div>
          </div>
-         <div className="bg-gray-800/50 p-6 rounded-3xl border border-white/5 md:col-span-2 flex items-center justify-center">
-             <div className="text-xl md:text-2xl font-medium text-indigo-200">
-                 {score === 6 ? "Outstanding! A flawless performance. 🌟" : 
-                  score >= 4 ? "Excellent work! You are mastering this. 🚀" : 
-                  "Good practice. Consistency is key! 💪"}
+         <div className="bg-indigo-900/20 p-6 rounded-3xl border border-indigo-500/20 md:col-span-2 flex items-center justify-between px-10">
+             <div className="text-left">
+                 <div className="text-indigo-300 text-xs uppercase tracking-widest font-bold mb-2">30-Day Total {user ? '(Cloud)' : '(Local)'}</div>
+                 <div className="text-5xl font-black text-white tracking-tighter">{monthlyScore} <span className="text-lg text-indigo-400 font-medium">pts</span></div>
+             </div>
+             <div className="text-right hidden sm:block">
+                 <div className="text-indigo-200 text-sm font-medium">Keep the streak alive! 🔥</div>
              </div>
          </div>
       </div>
@@ -340,7 +481,7 @@ const App: React.FC = () => {
         onClick={() => setGameState(GameState.Start)}
         className="bg-white text-gray-900 hover:bg-gray-100 font-bold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-xl shadow-white/10 transform hover:-translate-y-1 ring-4 ring-gray-900"
       >
-        Start New Session
+        Back to Dashboard
       </button>
     </div>
   );
