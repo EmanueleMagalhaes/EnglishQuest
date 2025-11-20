@@ -94,13 +94,29 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
   } catch (error: any) {
     console.error("Error fetching quiz questions:", error);
     
-    if (error.message === "MISSING_API_KEY") {
-        throw new Error("API Key missing. Please add API_KEY to your Vercel Environment Variables.");
+    let errorMessage = error.message || JSON.stringify(error);
+
+    // Detect Google Security Block (Leaked Key)
+    if (errorMessage.includes("leaked") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("403")) {
+         throw new Error("Your API Key was blocked by Google Security because it was leaked publicly. Please generate a NEW key at Google AI Studio.");
+    }
+
+    if (errorMessage === "MISSING_API_KEY") {
+        throw new Error("API Key missing. Please add API_KEY to your .env file.");
     }
     
-    // Pass the actual error message if available for better debugging
-    const errorMessage = error.message || "Unknown error";
-    throw new Error(`Failed to generate quiz: ${errorMessage}`);
+    // Clean up common JSON error dumps from the UI
+    if (errorMessage.includes("{")) {
+        try {
+             // Try to extract a readable message if it's a JSON error
+             const match = errorMessage.match(/"message":\s*"([^"]+)"/);
+             if (match && match[1]) {
+                 errorMessage = match[1];
+             }
+        } catch (e) { /* ignore */ }
+    }
+
+    throw new Error(`${errorMessage}`);
   }
 };
 
