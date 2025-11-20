@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { QuizQuestion, Difficulty } from '../types';
 
@@ -11,15 +10,20 @@ const cleanJSON = (text: string): string => {
 
 const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQuestion[]> => {
   try {
+    // Access the key directly. The vite config handles the trimming.
     const apiKey = process.env.API_KEY;
 
-    // Debug log to check if key is loaded (Safe log: shows only first 4 chars)
-    if (!apiKey || apiKey === "undefined" || apiKey.trim() === "") {
-        console.error("DEBUG: API Key is MISSING or EMPTY in the client.");
+    // --- DEBUGGING LOGIC START ---
+    // This will appear in your browser console (F12) so you can verify the key status
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+        console.error("CRITICAL ERROR: API Key is completely missing in the app code.");
         throw new Error("MISSING_API_KEY");
     } else {
-        console.log(`DEBUG: API Key loaded. Starts with: ${apiKey.substring(0, 4)}... Length: ${apiKey.length}`);
+        // We show the first 4 chars to verify it's the NEW key, not the old one.
+        // Don't worry, this is safe, it doesn't show the full key.
+        console.log(`[Gemini Service] Key loaded successfully. Prefix: ${apiKey.substring(0, 4)}... (Length: ${apiKey.length})`);
     }
+    // --- DEBUGGING LOGIC END ---
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
 
@@ -98,17 +102,21 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
     return questions.slice(0, 6);
 
   } catch (error: any) {
-    console.error("Error fetching quiz questions:", error);
+    console.error("Detailed API Error:", error);
     
     let errorMessage = error.message || JSON.stringify(error);
 
-    // Detect Google Security Block (Leaked Key)
-    if (errorMessage.includes("leaked") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("403") || errorMessage.includes("not valid")) {
-         throw new Error("API Key Invalid or Blocked. Please check Vercel Environment Variables and Redeploy.");
+    // Detect Google Security Block (Leaked Key) or Invalid Key
+    if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED")) {
+         throw new Error("API Key Permission Denied (403). Google blocked this request. Ensure 'Generative Language API' is enabled in Google Cloud Console.");
+    }
+    
+    if (errorMessage.includes("400") || errorMessage.includes("INVALID_ARGUMENT") || errorMessage.includes("not valid")) {
+         throw new Error("API Key Invalid. The key provided in Vercel settings is incorrect.");
     }
 
     if (errorMessage === "MISSING_API_KEY") {
-        throw new Error("API Key missing. Please add API_KEY to Vercel Settings and Redeploy.");
+        throw new Error("API Key missing. Please check Vercel Environment Variables and Redeploy.");
     }
     
     // Clean up common JSON error dumps from the UI

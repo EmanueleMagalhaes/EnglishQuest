@@ -1,4 +1,3 @@
-
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -9,8 +8,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
 
   // Helper to get value from process.env (Vercel/System) OR .env file
-  // We fallback to '' (empty string) to avoid 'undefined' in the client bundle
-  const getEnv = (key: string) => process.env[key] || env[key] || "";
+  // We add .trim() to remove accidental whitespaces from copy-pasting
+  const getEnv = (key: string) => {
+    const val = process.env[key] || env[key] || "";
+    return typeof val === 'string' ? val.trim() : val;
+  };
 
   return {
     plugins: [react()],
