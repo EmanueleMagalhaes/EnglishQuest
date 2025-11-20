@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchDailyQuizQuestions } from './services/geminiService';
+import { fetchDailyQuizQuestions, shuffleArray } from './services/geminiService';
 import { auth, signInWithGoogle, logOut, saveScoreToFirestore, getMonthlyStatsFromFirestore, isFirebaseConfigured, syncLocalHistoryToFirestore } from './services/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { QuizQuestion, UserAnswer, GameState, AnswerFeedback, Difficulty, QuizHistoryItem } from './types';
@@ -124,8 +124,8 @@ const App: React.FC = () => {
 
     try {
       const today = new Date().toISOString().split('T')[0];
-      // Updated storage key to match new app name
-      const storageKey = `myTargetQuiz-${selectedDifficulty}`;
+      // Updated storage key to match new app name and versioning to force refresh
+      const storageKey = `myTargetQuiz-${selectedDifficulty}-v3`;
       const storedData = localStorage.getItem(storageKey);
       
       // Check cache (We keep cache in local storage even for logged in users to save API calls)
@@ -133,7 +133,12 @@ const App: React.FC = () => {
         try {
             const { date, questions: storedQuestions } = JSON.parse(storedData);
             if (date === today && Array.isArray(storedQuestions) && storedQuestions.length > 0) {
-                setQuestions(storedQuestions);
+                // Reshuffle options for cached questions to ensure randomness even on replay
+                const reshuffledQuestions = storedQuestions.map((q: QuizQuestion) => ({
+                    ...q,
+                    options: shuffleArray(q.options)
+                }));
+                setQuestions(reshuffledQuestions);
                 setGameState(GameState.Playing);
                 setIsLoading(false);
                 return;
@@ -207,7 +212,7 @@ const App: React.FC = () => {
     const firebaseConfigured = isFirebaseConfigured();
 
     return (
-      <div className="text-center max-w-3xl mx-auto px-4 sm:px-6 animate-fadeIn pb-10 pt-10 md:pt-0">
+      <div className="text-center max-w-3xl mx-auto px-4 sm:px-6 animate-fadeIn pb-16 pt-10 md:pt-0">
         {/* Auth Button (Only show user info here, login button is now the main CTA) */}
         <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
             {user && (
@@ -265,8 +270,8 @@ const App: React.FC = () => {
           Elevate your vocabulary and grammar with AI-curated challenges tailored to your level.
         </p>
 
-        <div className="mb-8 md:mb-12 p-1 bg-gray-800/40 rounded-3xl border border-gray-700/50 inline-flex flex-col sm:flex-row backdrop-blur-xl shadow-xl relative z-10 w-full sm:w-auto">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-1">
+        <div className="mb-8 md:mb-12 p-1 bg-gray-800/40 rounded-3xl border border-gray-700/50 flex flex-col sm:flex-row backdrop-blur-xl shadow-xl relative z-10 w-full max-w-xs sm:max-w-none mx-auto sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-1 w-full">
             {Object.values(Difficulty).map((level) => (
               <button
                 key={level}
