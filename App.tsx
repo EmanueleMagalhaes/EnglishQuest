@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { fetchDailyQuizQuestions, shuffleArray } from './services/geminiService';
 import { auth, signInWithGoogle, logOut, saveScoreToFirestore, getMonthlyStatsFromFirestore, isFirebaseConfigured, syncLocalHistoryToFirestore } from './services/firebase';
@@ -15,7 +16,13 @@ const App: React.FC = () => {
   const [feedback, setFeedback] = useState<AnswerFeedback>(AnswerFeedback.None);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.Intermediate);
+  
+  // Initialize difficulty from local storage if available, else default to Phase 1
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(() => {
+      const saved = localStorage.getItem('lastDifficulty');
+      return (saved as Difficulty) || Difficulty.Phase1;
+  });
+
   const [user, setUser] = useState<User | null>(null);
   
   // Stats State
@@ -36,6 +43,11 @@ const App: React.FC = () => {
         return () => unsubscribe();
     }
   }, []);
+
+  // Persist selected difficulty
+  useEffect(() => {
+      localStorage.setItem('lastDifficulty', selectedDifficulty);
+  }, [selectedDifficulty]);
 
   // Calculate stats on mount, when returning to start, or when user changes
   useEffect(() => {
@@ -125,7 +137,7 @@ const App: React.FC = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       // Updated storage key to match new app name and versioning to force refresh
-      const storageKey = `myTargetQuiz-${selectedDifficulty}-v3`;
+      const storageKey = `myTargetQuiz-${selectedDifficulty}-v5`;
       const storedData = localStorage.getItem(storageKey);
       
       // Check cache (We keep cache in local storage even for logged in users to save API calls)
@@ -270,15 +282,16 @@ const App: React.FC = () => {
           Elevate your vocabulary and grammar with AI-curated challenges tailored to your level.
         </p>
 
-        <div className="mb-8 md:mb-12 p-1 bg-gray-800/40 rounded-3xl border border-gray-700/50 flex flex-col sm:flex-row backdrop-blur-xl shadow-xl relative z-10 w-full max-w-xs sm:max-w-none mx-auto sm:w-auto">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-0 sm:space-x-1 w-full">
+        {/* Phase Selection - Responsive Grid 2x2 on Mobile */}
+        <div className="mb-8 md:mb-12 p-2 bg-gray-800/40 rounded-3xl border border-gray-700/50 backdrop-blur-xl shadow-xl relative z-10 w-full max-w-2xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {Object.values(Difficulty).map((level) => (
               <button
                 key={level}
                 onClick={() => setSelectedDifficulty(level)}
-                className={`px-6 md:px-8 py-3 rounded-[1.3rem] font-bold text-sm transition-all duration-300 w-full sm:w-auto ${
+                className={`px-2 md:px-4 py-3 md:py-4 rounded-2xl font-bold text-sm transition-all duration-300 w-full flex items-center justify-center ${
                   selectedDifficulty === level
-                    ? 'bg-gray-700 text-white shadow-lg ring-1 ring-white/10'
+                    ? 'bg-gray-700 text-white shadow-lg ring-1 ring-white/10 scale-[1.02]'
                     : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                 }`}
               >

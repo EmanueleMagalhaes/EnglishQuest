@@ -25,9 +25,10 @@ export enum AnswerFeedback {
 }
 
 export enum Difficulty {
-    Beginner = "Beginner",
-    Intermediate = "Intermediate",
-    Advanced = "Advanced",
+    Phase1 = "Fase 1",
+    Phase2 = "Fase 2",
+    Phase3 = "Fase 3",
+    Phase4 = "Fase 4",
 }
 
 export interface QuizHistoryItem {

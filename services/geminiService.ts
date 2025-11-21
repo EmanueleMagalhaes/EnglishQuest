@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { QuizQuestion, Difficulty } from '../types';
 
@@ -18,6 +19,21 @@ export const shuffleArray = <T>(array: T[]): T[] => {
     return newArray;
 };
 
+const getPhaseDescription = (difficulty: Difficulty): string => {
+    switch (difficulty) {
+        case Difficulty.Phase1:
+            return "Level: Absolute Beginner (CEFR A1). Content: Simple vocabulary (colors, numbers, family, days), basic greetings, and present simple tense ('I am', 'He likes'). Short, clear sentences.";
+        case Difficulty.Phase2:
+            return "Level: Elementary (CEFR A2). Content: Daily routines, past simple tense, basic prepositions, shopping conversations, and travel phrases. Sentences with simple conjunctions.";
+        case Difficulty.Phase3:
+            return "Level: Intermediate (CEFR B1/B2). Content: Conditionals (if clauses), present perfect tense, passive voice, and varied vocabulary related to work, technology, and opinions.";
+        case Difficulty.Phase4:
+            return "Level: Advanced (CEFR C1/C2). Content: Complex grammar structures, idioms, phrasal verbs, nuance in meaning, and professional/academic vocabulary.";
+        default:
+            return "General English knowledge.";
+    }
+};
+
 const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQuestion[]> => {
   try {
     // Access the key directly. The vite config handles the trimming.
@@ -30,20 +46,24 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
         throw new Error("MISSING_API_KEY");
     } else {
         // We show the first 4 chars to verify it's the NEW key, not the old one.
-        // Don't worry, this is safe, it doesn't show the full key.
         console.log(`[Gemini Service] Key loaded successfully. Prefix: ${apiKey.substring(0, 4)}... (Length: ${apiKey.length})`);
     }
     // --- DEBUGGING LOGIC END ---
 
     const ai = new GoogleGenAI({ apiKey: apiKey });
 
+    const phaseContext = getPhaseDescription(difficulty);
+
     const prompt = `
-    Create 6 distinct English quiz questions for a student at the ${difficulty} level.
+    Create 6 distinct English quiz questions for a student at the "${difficulty}" level.
     
-    Requirements:
-    - Questions should verify grammar, vocabulary, or idiom knowledge appropriate for ${difficulty}.
+    Specific Instructions for this Level:
+    ${phaseContext}
+    
+    General Requirements:
     - Context should be modern and relevant.
-    - Do not repeat concepts.
+    - Do not repeat concepts within the same quiz.
+    - Ensure the difficulty strictly matches the description above.
     
     Output Format: JSON Array only.
     `;
@@ -52,7 +72,7 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: `You are a world-class English Linguistics Professor designing a curriculum for ${difficulty} students. Your goal is to test nuance and accuracy. Ensure distractors (wrong answers) are plausible but clearly incorrect to a knowledgeable student.`,
+        systemInstruction: `You are a world-class English Linguistics Professor designing a curriculum. Your goal is to create a quiz that matches the requested proficiency level exactly. Ensure distractors (wrong answers) are plausible but clearly incorrect to a knowledgeable student.`,
         responseMimeType: "application/json",
         // Disable safety settings to prevent blocking valid educational content
         safetySettings: [
@@ -112,7 +132,6 @@ const fetchDailyQuizQuestions = async (difficulty: Difficulty): Promise<QuizQues
     const processedQuestions = questions.slice(0, 6).map(q => ({
         ...q,
         // Shuffle options so the answer isn't always A or B.
-        // Since correctAnswer is a string matching one of the options, logic holds.
         options: shuffleArray(q.options) 
     }));
 
